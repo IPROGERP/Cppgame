@@ -1,0 +1,152 @@
+cmake_minimum_required(VERSION 3.16)
+project(DungeonLooter LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Опции
+option(BUILD_TESTS "Build tests" OFF)
+option(ENABLE_COVERAGE "Enable code coverage" OFF)
+
+# Функция для coverage
+function(enable_coverage target)
+    if(ENABLE_COVERAGE)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+            message(STATUS "Enabling coverage for target: ${target}")
+            target_compile_options(${target} PRIVATE
+                --coverage -fprofile-arcs -ftest-coverage -O0 -g
+            )
+            target_link_options(${target} PRIVATE --coverage)
+        endif()
+    endif()
+endfunction()
+
+# Глобальные include директории
+set(PROJECT_INCLUDES
+    ${CMAKE_SOURCE_DIR}/SourceCode
+    ${CMAKE_SOURCE_DIR}/SourceCode/Model
+    ${CMAKE_SOURCE_DIR}/SourceCode/Service
+    ${CMAKE_SOURCE_DIR}/SourceCode/View
+    ${CMAKE_SOURCE_DIR}/SourceCode/Controller
+)
+
+# Основное приложение
+add_executable(main 
+    main.cpp 
+    SourceCode/View/view.cpp 
+    SourceCode/Controller/controller.cpp 
+    SourceCode/Service/collisionservice.cpp 
+    SourceCode/Service/itemservice.cpp
+    #SourceCode/Service/menuservice.cpp
+    #SourceCode/Service/movementservice.cpp
+    SourceCode/Model/character.cpp
+    SourceCode/Model/chester.cpp
+    SourceCode/Model/enemy.cpp
+    SourceCode/Model/inventory.cpp
+    SourceCode/Model/item.cpp
+    SourceCode/Model/level.cpp
+    SourceCode/Model/armor.cpp
+    SourceCode/Model/potion.cpp
+    SourceCode/Model/weapon.cpp
+    SourceCode/Model/lockpickbundle.cpp
+    SourceCode/Service/saveservice.cpp
+)
+
+#enable_coverage(main)
+
+target_include_directories(main PRIVATE ${PROJECT_INCLUDES})
+
+find_library(RAYLIB_LIB raylib REQUIRED)
+find_path(RAYLIB_INCLUDE_DIR raylib.h REQUIRED)
+target_include_directories(main PRIVATE ${RAYLIB_INCLUDE_DIR})
+target_link_libraries(main PRIVATE ${RAYLIB_LIB})
+
+if(UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    target_link_libraries(main PRIVATE Threads::Threads)
+endif()
+
+if(APPLE)
+    target_link_libraries(main PRIVATE
+        "-framework OpenGL"
+        "-framework Cocoa" 
+        "-framework IOKit"
+    )
+endif()
+
+# Тесты
+if(BUILD_TESTS)
+    enable_testing()
+    find_package(GTest REQUIRED)
+    include(GoogleTest)
+    message(STATUS "✅ Building tests with GoogleTest")
+    
+    # Создаем библиотеку с исходниками проекта для линковки в тесты
+    add_library(project_lib STATIC
+        SourceCode/Model/inventory.cpp
+        SourceCode/Model/item.cpp
+        SourceCode/Model/level.cpp
+        SourceCode/Model/weapon.cpp
+        SourceCode/Model/potion.cpp
+        SourceCode/Model/armor.cpp
+        SourceCode/Model/lockpickbundle.cpp
+        SourceCode/Model/enemy.cpp
+        SourceCode/Model/chester.cpp
+        SourceCode/Model/character.cpp
+        SourceCode/Service/itemservice.cpp
+        SourceCode/Service/collisionservice.cpp
+    )
+    
+    target_include_directories(project_lib PUBLIC ${PROJECT_INCLUDES})
+    enable_coverage(project_lib)
+    
+    # Подключаем тесты из поддиректории
+    add_subdirectory(SourceCode/Tests)
+    
+else()
+    message(STATUS "⏭️  Skipping tests (BUILD_TESTS=OFF)")
+endif()
+
+find_package(Threads REQUIRED)
+
+if(BUILD_BENCHMARKS)
+    message(STATUS "✅ Building benchmarks")
+    
+    add_executable(benchmark_enemy_movement 
+        SourceCode/Controller/benchmark.cpp
+        
+        # Model files
+        SourceCode/Model/character.cpp
+        SourceCode/Model/chester.cpp
+        SourceCode/Model/enemy.cpp
+        SourceCode/Model/inventory.cpp
+        SourceCode/Model/item.cpp
+        SourceCode/Model/level.cpp
+        SourceCode/Model/armor.cpp
+        SourceCode/Model/potion.cpp
+        SourceCode/Model/weapon.cpp
+        SourceCode/Model/lockpickbundle.cpp
+        
+        # Services
+        SourceCode/Service/collisionservice.cpp
+        SourceCode/Service/itemservice.cpp
+        SourceCode/Service/saveservice.cpp
+    )
+    
+    target_include_directories(benchmark_enemy_movement PRIVATE ${PROJECT_INCLUDES})
+    
+    # ADD RAYLIB LINKING HERE:
+    find_library(RAYLIB_LIB raylib REQUIRED)
+    target_link_libraries(benchmark_enemy_movement PRIVATE ${RAYLIB_LIB})
+    
+    # Threads
+    find_package(Threads REQUIRED)
+    target_link_libraries(benchmark_enemy_movement PRIVATE Threads::Threads)
+    
+    # Enable optimizations
+    target_compile_options(benchmark_enemy_movement PRIVATE -O3)
+endif()
+
+
+message(STATUS "Build tests: ${BUILD_TESTS}")
+message(STATUS "Enable coverage: ${ENABLE_COVERAGE}")

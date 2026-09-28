@@ -1,0 +1,33 @@
+# Список всех тестовых файлов
+set(TEST_SOURCES
+    matrix_test.cpp
+    test_armor.cpp
+    test_character.cpp
+    test_inventory.cpp
+    test_item.cpp
+    test_level.cpp
+    test_potion.cpp
+    test_weapon.cpp
+)
+
+# Исполняемый файл тестов
+add_executable(run_tests ${TEST_SOURCES})
+
+# Линкуем с библиотекой проекта и GTest
+target_link_libraries(run_tests PRIVATE 
+    project_lib 
+    GTest::gtest_main
+    pthread
+)
+
+# Include директории (уже в project_lib, но на всякий случай)
+target_include_directories(run_tests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/SourceCode
+    ${CMAKE_SOURCE_DIR}/SourceCode/Model
+)
+
+# Coverage для тестов
+enable_coverage(run_tests)
+
+# Автоматическое обнаружение тестов
+gtest_discover_tests(run_tests)

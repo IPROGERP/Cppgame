@@ -1,0 +1,16 @@
+main
+build/
+.DS_Store
+matrixtest
+matrixtest.cpp
+.cache
+.vscode
+**/.DS_Store
+matrix_test
+matrix_test-matrix_test.gcda
+matrix_test-matrix_test.gcno
+html
+latex
+coverage.html
+Doxyfile
+Saves/
